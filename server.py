@@ -2,16 +2,14 @@ import asyncio
 import json
 import logging
 import random
+import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import uvicorn
-import os
 
-# Configure logging
+# Logging configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 app = FastAPI()
-
-# Active WebSocket connections
 connections = set()
 
 @app.websocket("/ws")
@@ -46,7 +44,6 @@ async def send_random_events():
             event_json = json.dumps(event)
             logging.info(f"📤 Sending event: {event_json}")
 
-            # Send event to all clients
             for websocket in list(connections):
                 try:
                     await websocket.send_text(event_json)
@@ -55,9 +52,16 @@ async def send_random_events():
 
         await asyncio.sleep(15)
 
-if __name__ == "__main__":
-    # Run WebSocket event sender in the background
-    asyncio.create_task(send_random_events())
+def start_server():
+    """Starts the Uvicorn WebSocket server inside an event loop."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-    # Start WebSocket server without SSL (Render provides SSL automatically)
+    # Run background task inside the event loop
+    loop.create_task(send_random_events())
+
+    # Start Uvicorn WebSocket server
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+
+if __name__ == "__main__":
+    start_server()
