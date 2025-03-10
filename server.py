@@ -61,7 +61,9 @@ def start_server():
     loop.create_task(send_random_events())
 
     # Start Uvicorn WebSocket server
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+    PORT = int(os.environ.get("PORT", 8000))  # Use Railway's assigned port
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
+
 
 if __name__ == "__main__":
     start_server()
