@@ -3,7 +3,6 @@ import json
 import logging
 import random
 import os
-import ssl
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import uvicorn
 
@@ -17,13 +16,8 @@ connections = set()
 async def websocket_endpoint(websocket: WebSocket):
     """Handles WebSocket connections."""
     await websocket.accept()
-
-    # Get the connection scheme (ws or wss)
-    scheme = "wss" if websocket.url.port == 443 else "ws"
-    logging.info(f"🔍 New connection: {scheme}://{websocket.url.hostname}")
-
     connections.add(websocket)
-    logging.info("✅ WebSocket connection established.")
+    logging.info(f"✅ New WebSocket connection established: {websocket.url}")
 
     try:
         while True:
@@ -61,16 +55,11 @@ async def send_random_events():
 async def main():
     """Runs the WebSocket server and background tasks."""
     task = asyncio.create_task(send_random_events())  # Start background event loop
-
-    # Load SSL certificates
-    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_cert = "/app/fullchain.pem"  # Replace with your Render SSL cert path
-    ssl_key = "/app/privkey.pem"  # Replace with your Render SSL key path
-    if os.path.exists(ssl_cert) and os.path.exists(ssl_key):
-        ssl_context.load_cert_chain(ssl_cert, ssl_key)
-        logging.info("✅ SSL certificate loaded successfully for WSS.")
-
-    config = uvicorn.Config(app, host="0.0.0.0", port=int(os.environ.get("PORT", 443)), ssl_context=ssl_context)
+    config = uvicorn.Config(
+        app, 
+        host="0.0.0.0", 
+        port=int(os.environ.get("PORT", 10000))  # Ensure using Render's port
+    )
     server = uvicorn.Server(config)
 
     await server.serve()  # Start Uvicorn server
