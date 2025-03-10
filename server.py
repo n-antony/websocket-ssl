@@ -52,18 +52,14 @@ async def send_random_events():
 
         await asyncio.sleep(15)
 
-def start_server():
-    """Starts the Uvicorn WebSocket server inside an event loop."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+async def main():
+    """Runs the WebSocket server and background tasks."""
+    task = asyncio.create_task(send_random_events())  # Start background event loop
+    config = uvicorn.Config(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    server = uvicorn.Server(config)
 
-    # Run background task inside the event loop
-    loop.create_task(send_random_events())
-
-    # Start Uvicorn WebSocket server
-    PORT = int(os.environ.get("PORT", 8000))  # Use Railway's assigned port
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
-
+    await server.serve()  # Start Uvicorn server
+    task.cancel()  # Cancel background task on shutdown
 
 if __name__ == "__main__":
-    start_server()
+    asyncio.run(main())
